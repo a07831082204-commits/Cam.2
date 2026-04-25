@@ -2,90 +2,83 @@ import streamlit as st
 from PIL import Image, ImageOps, ImageEnhance, ImageFilter
 import io
 
-# 1. تفعيل وضع العرض الكامل (layout="wide")
+# 1. إعدادات العرض الكامل
 st.set_page_config(
     page_title="MUNTADHER Ultra Camera", 
     page_icon="📸", 
-    layout="wide"  # هذا هو السر في جعل التطبيق يملأ الشاشة
+    layout="wide"
 )
 
-# إخفاء العلامات المائية تماماً
+# كود CSS مكثف لإلغاء الهوامش وتوسيع الكاميرا
 st.markdown("""
     <style>
+    /* إخفاء الهوامش الجانبية والعلوية تماماً */
+    .block-container {
+        padding: 0rem !important;
+        max-width: 100% !important;
+    }
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
-    div.stDeployButton {display: none !important;}
-    /* تقليل الهوامش العلوية والسفلية */
-    .block-container {
-        padding-top: 1rem;
-        padding-bottom: 0rem;
-        padding-left: 1rem;
-        padding-right: 1rem;
+    
+    /* تكبير مساحة الكاميرا */
+    .stCamera input {
+        height: 400px !important;
+    }
+    div[data-testid="stImage"] img {
+        width: 100% !important;
+        border-radius: 10px;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. العنوان بملئ الشاشة
-st.markdown("<h1 style='text-align: center; color: #00FFA2; font-size: 3rem;'>📸 MUNTADHER Ultra Camera</h1>", unsafe_allow_html=True)
-st.write("---")
+# 2. العنوان
+st.markdown("<h2 style='text-align: center; color: #00FFA2; background-color: #111; padding: 10px;'>📸 MUNTADHER CAMERA PRO</h2>", unsafe_allow_html=True)
 
-# 3. استخدام الحاويات بملئ الشاشة
-# جعلنا النسبة 1:1 أو 2:1 لتعطيك مساحة أكبر للعرض
-col_ctrl, col_view = st.columns([1, 2])
+# 3. استخدام الحاوية الكاملة
+container = st.container()
 
-with col_ctrl:
-    st.markdown("### 🛠️ المختبر")
-    img_file = st.camera_input("افتح الكاميرا")
-    
-    if img_file:
-        st.write("---")
-        base_filter = st.selectbox("القالب الأساسي:", 
-            ["طبيعي", "أبيض وأسود", "سيبيا (قديم)", "سلبي (Negative)", "رسم زيتي"])
-        
-        brightness = st.slider("السطوع", 0.0, 3.0, 1.0)
-        contrast = st.slider("التباين", 0.0, 3.0, 1.0)
-        color = st.slider("الألوان", 0.0, 5.0, 1.0)
-        blur_level = st.slider("التغبيش", 0, 10, 0)
+with container:
+    img_file = st.camera_input("التقط صورتك الآن")
 
-with col_view:
     if img_file:
         original_img = Image.open(img_file)
         
-        # معالجة الصورة
+        # وضع أدوات التحكم في صف واحد تحت الكاميرا لتوفير مساحة
+        col_f1, col_f2 = st.columns(2)
+        with col_f1:
+            base_filter = st.selectbox("الفلتر:", ["طبيعي", "أبيض وأسود", "سيبيا", "سلبي", "رسم"])
+        with col_f2:
+            blur_level = st.select_slider("التغبيش:", options=[0, 2, 5, 10])
+
+        # محرك المعالجة
         processed_img = original_img
         if base_filter == "أبيض وأسود":
             processed_img = ImageOps.grayscale(processed_img)
-        elif base_filter == "سيبيا (قديم)":
+        elif base_filter == "سيبيا":
             gray = ImageOps.grayscale(processed_img)
             processed_img = ImageOps.colorize(gray, "#704214", "#C0A080")
-        elif base_filter == "سلبي (Negative)":
+        elif base_filter == "سلبي":
             processed_img = ImageOps.invert(processed_img.convert("RGB"))
-        elif base_filter == "رسم زيتي":
+        elif base_filter == "رسم":
             processed_img = processed_img.filter(ImageFilter.CONTOUR)
 
-        # التعديلات الدقيقة
-        processed_img = ImageEnhance.Brightness(processed_img).enhance(brightness)
-        processed_img = ImageEnhance.Contrast(processed_img).enhance(contrast)
-        processed_img = ImageEnhance.Color(processed_img).enhance(color)
         if blur_level > 0:
             processed_img = processed_img.filter(ImageFilter.GaussianBlur(radius=blur_level))
 
-        # عرض الصورة بملئ مساحة العمود
+        # عرض النتيجة بملء العرض
+        st.markdown("### 🖼️ النتيجة النهائية:")
         st.image(processed_img, use_container_width=True)
         
-        # زر التحميل بشكل عريض
+        # زر التحميل عريض جداً وسهل الضغط
         buf = io.BytesIO()
         processed_img.save(buf, format="PNG")
         st.download_button(
-            label="📥 حفظ الصورة النهائية", 
+            label="📥 حفظ الصورة بملء الشاشة", 
             data=buf.getvalue(), 
-            file_name="Muntadher_Full_HD.png", 
+            file_name="Muntadher_Pro.png", 
             mime="image/png",
             use_container_width=True
         )
-    else:
-        # رسالة تظهر قبل التقاط الصورة تشغل مساحة الشاشة
-        st.info("قم بفتح الكاميرا والتقاط صورة لتبدأ المعالجة بملئ الشاشة.")
 
-st.markdown("<p style='text-align: center; color: #555; margin-top: 50px;'>MUNTADHER.H.ASD Engineering</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #555; padding: 20px;'>MUNTADHER.H.ASD Engineering</p>", unsafe_allow_html=True)
